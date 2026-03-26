@@ -1,0 +1,118 @@
+### QuickNote API — run `python manage.py runserver` first (from Backend/).
+### VS Code: REST Client extension. IntelliJ: built-in HTTP Client.
+###
+### Trailing slashes match Django’s DefaultRouter.
+
+@host = http://127.0.0.1:8000
+@noteId = 1
+
+
+### List all notes — 200 OK
+GET {{host}}/api/notes/
+Accept: application/json
+
+
+### Create note — 201 Created
+POST {{host}}/api/notes/
+Content-Type: application/json
+
+{
+  "content": "Buy milk"
+}
+
+
+### Create note — longer body (still valid if ≤ 50_000 chars)
+POST {{host}}/api/notes/
+Content-Type: application/json
+
+{
+  "content": "Line one.\nLine two.\nUnicode: café · 中文"
+}
+
+
+### Retrieve one note — 200 OK (replace @noteId)
+GET {{host}}/api/notes/{{noteId}}/
+Accept: application/json
+
+
+### Full update (PUT) — 200 OK
+PUT {{host}}/api/notes/{{noteId}}/
+Content-Type: application/json
+
+{
+  "content": "Replaced entire note via PUT"
+}
+
+
+### Partial update (PATCH) — 200 OK
+PATCH {{host}}/api/notes/{{noteId}}/
+Content-Type: application/json
+
+{
+  "content": "Only content changed via PATCH"
+}
+
+
+### Delete note — 204 No Content
+DELETE {{host}}/api/notes/{{noteId}}/
+
+
+################################################################################
+# Validation / error cases (expect 400 — adjust @noteId for 404 samples)
+# Over-max content (50_001 chars) — 400: generate body with
+#   python -c "import json; print(json.dumps({'content': 'x'*50001}))"
+# or run `manage.py test core`.
+################################################################################
+
+### Create — missing content — 400 Bad Request
+POST {{host}}/api/notes/
+Content-Type: application/json
+
+{}
+
+
+### Create — empty string — 400 Bad Request
+POST {{host}}/api/notes/
+Content-Type: application/json
+
+{
+  "content": ""
+}
+
+
+### Create — whitespace only — 400 Bad Request
+POST {{host}}/api/notes/
+Content-Type: application/json
+
+{
+  "content": "    \t  \n  "
+}
+
+
+### Patch — invalid empty content — 400 Bad Request
+PATCH {{host}}/api/notes/{{noteId}}/
+Content-Type: application/json
+
+{
+  "content": ""
+}
+
+
+### Retrieve missing id — 404 Not Found
+GET {{host}}/api/notes/9999999/
+Accept: application/json
+
+
+### Delete missing id — 404 Not Found
+DELETE {{host}}/api/notes/9999999/
+
+
+### Optional: try to set read-only created_at (ignored or error depending on version)
+### Usually ignored on PATCH if only partial fields sent; including invalid types may 400.
+PATCH {{host}}/api/notes/{{noteId}}/
+Content-Type: application/json
+
+{
+  "content": "Valid update",
+  "created_at": "2000-01-01T00:00:00Z"
+}
