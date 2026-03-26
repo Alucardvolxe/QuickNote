@@ -1,13 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Header from './components/Header';
 import NoteForm from './components/NoteForm';
 import NoteList from './components/NoteList';
-import { createNote, deleteNote } from './services/notes';
+import { createNote, deleteNote, fetchNotes } from './services/notes';
 
 /**
- * Hardcoded seed notes — shown on first load so the UI is never empty.
- * Replace with a real fetchNotes() call inside a useEffect when the
- * Django backend is ready (see services/notes.js → fetchNotes).
+ * Seed notes — shown immediately while the backend fetches notes.
+ * Once the Django API responds, these are replaced with real data.
  */
 const SEED_NOTES = [
   {
@@ -33,9 +32,25 @@ const SEED_NOTES = [
 export default function App() {
   const [notes, setNotes] = useState(SEED_NOTES);
 
+  // Load notes from Django on first render.
+  useEffect(() => {
+    let cancelled = false;
+    fetchNotes()
+      .then((data) => {
+        if (!cancelled) setNotes(data);
+      })
+      .catch((err) => {
+        // Keep seed notes if the backend is temporarily unavailable.
+        console.error('Failed to fetch notes:', err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   /**
    * Add a new note.
-   * Calls the stubbed createNote() — swap for real API call in services/notes.js.
+   * Creates the note in the Django backend.
    */
   async function handleAdd(content) {
     const newNote = await createNote(content);
@@ -45,7 +60,7 @@ export default function App() {
 
   /**
    * Delete a note by ID.
-   * Calls the stubbed deleteNote() — swap for real API call in services/notes.js.
+   * Deletes the note in the Django backend.
    */
   async function handleDelete(id) {
     await deleteNote(id);
