@@ -7,14 +7,15 @@ const MAX_CHARS = 300;
  *
  * Props:
  *   onAdd(content: string) — called when the user submits a valid note
+ *   disableSubmit — blocks submit (e.g. while notes are still loading)
  */
-export default function NoteForm({ onAdd }) {
+export default function NoteForm({ onAdd, disableSubmit = false }) {
   const [text, setText] = useState('');
 
   const remaining = MAX_CHARS - text.length;
   const isOverLimit = remaining < 0;
   const isEmpty = text.trim().length === 0;
-  const isDisabled = isEmpty || isOverLimit;
+  const isDisabled = isEmpty || isOverLimit || disableSubmit;
 
   function handleSubmit(e) {
     e.preventDefault();

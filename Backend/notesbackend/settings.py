@@ -40,6 +40,11 @@ ALLOWED_HOSTS = [
     if h.strip()
 ]
 
+# Render sets this for web services; keeps ALLOWED_HOSTS in sync with the real *.onrender.com host.
+_render_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '').strip()
+if _render_hostname and _render_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_render_hostname)
+
 _cors = os.environ.get('CORS_ALLOWED_ORIGINS', '')
 if _cors:
     CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors.split(',') if o.strip()]

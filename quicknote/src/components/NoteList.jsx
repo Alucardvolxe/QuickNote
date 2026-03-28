@@ -7,20 +7,27 @@ import EmptyState from './EmptyState';
  * Props:
  *   notes      — array of note objects { id, content, created_at }
  *   onDelete(id) — bubbled up from NoteCard
+ *   isLoading  — initial fetch in progress
  */
-export default function NoteList({ notes, onDelete }) {
+export default function NoteList({ notes, onDelete, isLoading = false }) {
   const count = notes.length;
 
   return (
-    <section className="list-section">
+    <section className="list-section" aria-busy={isLoading}>
       <div className="list-header">
         <h2 className="list-title">Notes</h2>
         <span className="note-count" aria-live="polite">
-          {count} {count === 1 ? 'Note' : 'Notes'}
+          {isLoading
+            ? 'Loading…'
+            : `${count} ${count === 1 ? 'Note' : 'Notes'}`}
         </span>
       </div>
 
-      {count === 0 ? (
+      {isLoading ? (
+        <p className="list-loading" role="status">
+          Loading notes…
+        </p>
+      ) : count === 0 ? (
         <EmptyState />
       ) : (
         <div className="notes-grid">
