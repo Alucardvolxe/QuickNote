@@ -1,13 +1,21 @@
 /**
  * notes.js — Axios API service layer for QuickNotes
  *
- * The Vite dev server proxies `/api` -> `http://127.0.0.1:8000`, so we can call
- * relative URLs and avoid CORS issues.
+ * Local dev: Vite proxies `/api` -> the Django server (see vite.config.js).
+ * Production (Vercel): set VITE_API_BASE_URL to the Render API root, e.g.
+ * https://your-service.onrender.com/api
  */
 import axios from 'axios';
 
+function resolveBaseURL() {
+  const fromEnv = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, '');
+  if (import.meta.env.DEV) return '/api';
+  return '/api';
+}
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: resolveBaseURL(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
