@@ -10,7 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +23,34 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-$@c_5lnj78m8!aqa4tle9ms0_-gdtjx7i_lt^p1c7-vc11dl1y'
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-$@c_5lnj78m8!aqa4tle9ms0_-gdtjx7i_lt^p1c7-vc11dl1y',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0']
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in os.environ.get(
+        'ALLOWED_HOSTS',
+        '127.0.0.1,localhost,0.0.0.0',
+    ).split(',')
+    if h.strip()
+]
+
+_cors = os.environ.get('CORS_ALLOWED_ORIGINS', '')
+if _cors:
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors.split(',') if o.strip()]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        'http://127.0.0.1:3000',
+        'http://localhost:3000',
+    ]
+
+_csrf = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf.split(',') if o.strip()]
 
 
 # Application definition
@@ -37,6 +62,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
     'core',
     
@@ -44,6 +70,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -75,12 +103,19 @@ WSGI_APPLICATION = 'notesbackend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if os.environ.get('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.config(
+            conn_max_age=600,
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -118,10 +153,24 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
-# Logging: detailed `django.log` under BASE_DIR (next to manage.py); shorter lines on the console.
-# Console handler level INFO keeps DEBUG noise in the file only; WARNING/ERROR still print.
+# Logging: detailed `django.log` under BASE_DIR in DEBUG; console-only when DEBUG is False (e.g. Render).
+_LOG_HANDLERS = ['console']
+_LOG_ROOT_HANDLERS = ['console']
+if DEBUG:
+    _LOG_HANDLERS.append('file')
+    _LOG_ROOT_HANDLERS.append('file')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -151,12 +200,12 @@ LOGGING = {
         },
     },
     'root': {
-        'handlers': ['console', 'file'],
+        'handlers': _LOG_ROOT_HANDLERS,
         'level': 'DEBUG',
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': _LOG_HANDLERS,
             'level': 'DEBUG',
             'propagate': False,
         },
