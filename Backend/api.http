@@ -21,6 +21,9 @@ Content-Type: application/json
 }
 
 
+
+
+
 ### Create note — longer body (still valid if ≤ 50_000 chars)
 POST {{host}}/api/notes/
 Content-Type: application/json
